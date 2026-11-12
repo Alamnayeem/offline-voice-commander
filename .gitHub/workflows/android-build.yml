@@ -26,17 +26,35 @@ jobs:
           gradle-version: '8.7'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
         shell: bash
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+          export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          export PATH="$ANDROID_SDK_ROOT/platform-tools:$PATH"
+
+          SDKMANAGER_BIN="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER_BIN" ]; then
+            SDKMANAGER_BIN="$ANDROID_SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager"
+          fi
+
+          if [ ! -x "$SDKMANAGER_BIN" ]; then
+            echo "sdkmanager not found in Android SDK installation."
+            echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+            find "$ANDROID_SDK_ROOT" -maxdepth 4 -type f -name sdkmanager 2>/dev/null || true
+            exit 1
+          fi
+
+          export PATH="$(dirname "$SDKMANAGER_BIN"):$PATH"
+
+          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null
+          sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Make Gradle wrapper executable
+        shell: bash
+        run: chmod +x ./gradlew
 
       - name: Build debug APK
         shell: bash
-        run: gradle assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
