@@ -1,0 +1,64 @@
+name: Build and Publish APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Set up Android SDK
+        shell: bash
+        run: |
+          export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+
+          SDKMANAGER_BIN="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER_BIN" ]; then
+            SDKMANAGER_BIN="$ANDROID_SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager"
+          fi
+          if [ ! -x "$SDKMANAGER_BIN" ]; then
+            echo "sdkmanager not found in Android SDK installation."
+            exit 1
+          fi
+
+          export PATH="$(dirname "$SDKMANAGER_BIN"):$PATH"
+          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null
+          sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0"
+
+      - name: Build APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk OfflineVoiceCommander.apk
+
+      - name: Publish APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_id }}-${{ github.run_attempt }}
+          name: Installable APK build ${{ github.run_number }}
+          generate_release_notes: false
+          files: OfflineVoiceCommander.apk
