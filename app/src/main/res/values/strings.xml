@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Offline Voice Commander</string>
+    <string name="accessibility_service_label">Offline Voice Commander</string>
+    <string name="accessibility_description">Lets Offline Voice Commander perform actions you ask for by voice: open apps, tap visible buttons, scroll, swipe, long press and go back. Everything runs on your phone. No screen content is stored or sent anywhere.</string>
+</resources>
