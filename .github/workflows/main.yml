@@ -50,11 +50,21 @@ jobs:
 
       - name: Make Gradle wrapper executable
         shell: bash
-        run: chmod +x ./gradlew
+        run: |
+          if [ -f ./gradlew ]; then
+            chmod +x ./gradlew
+          else
+            echo "gradlew not found; using gradle directly"
+          fi
 
       - name: Build debug APK
         shell: bash
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew assembleDebug --stacktrace
+          else
+            gradle assembleDebug --stacktrace
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
